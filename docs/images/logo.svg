@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<svg width="478" height="258" viewBox="0 0 478 258" xmlns="http://www.w3.org/2000/svg">
+	<g id="g1">
+		<rect id="background" x="-1" y="-1" width="480" height="260" fill="#FFFFFF"/>
+	</g>
+	<g id="g2" transform="translate(4, 4)">
+		<path id="line5" d="M135,11 L105,239" stroke="#007FFF" stroke-width="8"/>
+		<path id="line4" d="M227,189 L135,11" stroke="#007FFF" stroke-width="8"/>
+		<path id="line8" d="M79,192 L142,194" stroke="#FFFFFF" stroke-width="8"/>
+		<path id="line7" d="M220,109 L163,135" stroke="#FFFFFF" stroke-width="8"/>
+		<path id="line6" d="M94,72 L160,84" stroke="#FFFFFF" stroke-width="8"/>
+		<path id="line3" d="M39,183 L227,189" stroke="#007FFF" stroke-width="8"/>
+		<path id="line2" d="M241,91 L39,183" stroke="#007FFF" stroke-width="8"/>
+		<path id="line1" d="M11,49 L241,91" stroke="#007FFF" stroke-width="8"/>
+		<circle id="circle6" cx="105" cy="239" r="11" fill="#FFFFFF" stroke="#007FFF" stroke-width="8"/>
+		<circle id="circle5" cx="135" cy="11" r="11" fill="#FFFFFF" stroke="#007FFF" stroke-width="8"/>
+		<circle id="circle4" cx="227" cy="189" r="11" fill="#FFFFFF" stroke="#007FFF" stroke-width="8"/>
+		<circle id="circle3" cx="39" cy="183" r="11" fill="#FFFFFF" stroke="#007FFF" stroke-width="8"/>
+		<circle id="circle2" cx="241" cy="91" r="11" fill="#FFFFFF" stroke="#007FFF" stroke-width="8"/>
+		<circle id="circle1" cx="11" cy="49" r="11" fill="#FFFFFF" stroke="#007FFF" stroke-width="8"/>
+		<text id="text1" x="473" y="152" fill="#007FFF" stroke="#007FFF" stroke-width="1"
+				font-family="Helvetica, Arial, sans-serif" font-size="80" text-anchor="end">cellx</text>
+	</g>
+</svg>
