@@ -797,8 +797,6 @@ var Cell = EventEmitter.extend({
 			throw new TypeError('Circular pulling detected');
 		}
 
-		var pull = this._pull;
-
 		var prevCell = currentCell;
 		currentCell = this;
 
@@ -807,7 +805,9 @@ var Cell = EventEmitter.extend({
 		this._level = 0;
 
 		try {
-			return pull.length ? pull.call(this.owner, this.push, this.fail, this._value) : pull.call(this.owner);
+			return this._pull.length ?
+				this._pull.call(this.owner, this.push, this.fail, this._value) :
+				this._pull.call(this.owner);
 		} catch (err) {
 			error.original = err;
 			return error;
