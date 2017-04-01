@@ -352,30 +352,7 @@ describe('Cell', () => {
 		}, 1);
 	});
 
-	it.skip('один поток не должен мешать другому', () => {
-		let a = new cellx.Cell(1, { debugKey: 'a' });
-		let b = new cellx.Cell(2, { debugKey: 'b' });
-
-		let t = 0;
-		let aa = new cellx.Cell(() => {
-			if (t++) {
-				b.set(10);
-			}
-
-			return a.get() + 1;
-		}, { debugKey: 'aa', onChange: noop });
-
-		let bb = new cellx.Cell(() => {
-			return b.get() + 1;
-		}, { debugKey: 'bb', onChange: noop });
-
-		a.set(5);
-
-		expect(aa.get())
-			.to.equal(6);
-	});
-
-	it.skip('должна правильно вычисляться при записи в родительскую ячейку в формуле', () => {
+	it('должна правильно вычисляться при записи в родительскую ячейку в формуле', () => {
 		let a = new cellx.Cell(1);
 		let b = new cellx.Cell(() => {
 			return a.get() + 1;
@@ -587,9 +564,9 @@ describe('Cell', () => {
 		let a = new cellx.Cell(() => {
 			return +(localStorage.a || 1);
 		}, {
-			put(value) {
+			put(cell, value) {
 				localStorage.a = value;
-				this.push(value);
+				cell.push(value);
 			}
 		});
 
@@ -608,10 +585,12 @@ describe('Cell', () => {
 
 	it('validation', () => {
 		let a = new cellx.Cell(1, {
-			validate(value) {
+			merge(value) {
 				if (typeof value != 'number') {
 					throw 1;
 				}
+
+				return value;
 			}
 		});
 		let error = null;

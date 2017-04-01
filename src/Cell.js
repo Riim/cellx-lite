@@ -11,7 +11,6 @@ var EventEmitterProto = EventEmitter.prototype;
 var MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER || 0x1fffffffffffff;
 var KEY_INNER = EventEmitter.KEY_INNER;
 
-var errorIndexCounter = 0;
 var pushingIndexCounter = 0;
 
 var releasePlan = new Map();
@@ -28,6 +27,12 @@ var transactionFailure = false;
 var pendingReactions = [];
 
 var afterReleaseCallbacks;
+
+var STATE_INITED = 0b10000;
+var STATE_CURRENTLY_PULLING = 0b1000;
+var STATE_ACTIVE = 0b100;
+var STATE_HAS_FOLLOWERS = 0b10;
+var STATE_CAN_CANCEL_CHANGE = 0b1;
 
 function release() {
 	if (!releasePlanned) {
@@ -143,8 +148,8 @@ function release() {
 /**
  * @typesign (value);
  */
-function defaultPut(value, push) {
-	push(value);
+function defaultPut(cell, value) {
+	cell.push(value);
 }
 
 var config = {
@@ -176,20 +181,18 @@ var config = {
  * @typesign new Cell(value?, opts?: {
  *     owner?: Object,
  *     get?: (value) -> *,
- *     validate?: (value, oldValue),
  *     merge: (value, oldValue) -> *,
- *     put?: (value, push: (value), fail: (err)),
+ *     put?: (cell: Cell, value, oldValue),
  *     reap?: (),
  *     onChange?: (evt: cellx~Event) -> ?boolean,
  *     onError?: (evt: cellx~Event) -> ?boolean
  * }) -> cellx.Cell;
  *
- * @typesign new Cell(pull: (push: (value), fail: (err), next) -> *, opts?: {
+ * @typesign new Cell(pull: (cell: Cell, next) -> *, opts?: {
  *     owner?: Object,
  *     get?: (value) -> *,
- *     validate?: (value, oldValue),
  *     merge: (value, oldValue) -> *,
- *     put?: (value, push: (value), fail: (err)),
+ *     put?: (cell: Cell, value, oldValue),
  *     reap?: (),
  *     onChange?: (evt: cellx~Event) -> ?boolean,
  *     onError?: (evt: cellx~Event) -> ?boolean
@@ -197,8 +200,6 @@ var config = {
  */
 var Cell = EventEmitter.extend({
 	Static: {
-		_nextTick: nextTick,
-
 		/**
 		 * @typesign (cnfg: { asynchronous?: boolean });
 		 */
@@ -317,36 +318,17 @@ var Cell = EventEmitter.extend({
 	constructor: function Cell(value, opts) {
 		EventEmitter.call(this);
 
-		if (!opts) {
-			opts = {};
-		}
-
-		var cell = this;
-
-		this.owner = opts.owner || this;
+		this.owner = opts && opts.owner || this;
 
 		this._pull = typeof value == 'function' ? value : null;
-		this._get = opts.get || null;
-
-		this._validate = opts.validate || null;
-		this._merge = opts.merge || null;
-
-		this._put = opts.put || defaultPut;
-
-		var push = this.push;
-		var fail = this.fail;
-
-		this.push = function(value) { push.call(cell, value); };
-		this.fail = function(err) { fail.call(cell, err); };
-
-		this._reap = opts.reap || null;
+		this._get = opts && opts.get || null;
+		this._merge = opts && opts.merge || null;
+		this._put = opts && opts.put || defaultPut;
+		this._reap = opts && opts.reap || null;
 
 		if (this._pull) {
 			this._fixedValue = this._value = undefined;
 		} else {
-			if (this._validate) {
-				this._validate(value, undefined);
-			}
 			if (this._merge) {
 				value = this._merge(value, undefined);
 			}
@@ -360,12 +342,6 @@ var Cell = EventEmitter.extend({
 
 		this._error = null;
 
-		this._inited = false;
-		this._currentlyPulling = false;
-		this._active = false;
-		this._hasFollowers = false;
-
-		this._errorIndex = 0;
 		this._pushingIndex = 0;
 		this._version = 0;
 
@@ -384,15 +360,17 @@ var Cell = EventEmitter.extend({
 		this._levelInRelease = -1;
 
 		this._changeEvent = null;
-		this._canCancelChange = true;
-
 		this._lastErrorEvent = null;
 
-		if (opts.onChange) {
-			this.on('change', opts.onChange);
-		}
-		if (opts.onError) {
-			this.on('error', opts.onError);
+		this._state = STATE_CAN_CANCEL_CHANGE;
+
+		if (opts) {
+			if (opts.onChange) {
+				this.on('change', opts.onChange);
+			}
+			if (opts.onError) {
+				this.on('error', opts.onError);
+			}
 		}
 	},
 
@@ -420,7 +398,7 @@ var Cell = EventEmitter.extend({
 			EventEmitterProto.on.call(this, type, listener, arguments.length >= 3 ? context : this.owner);
 		}
 
-		this._hasFollowers = true;
+		this._state |= STATE_HAS_FOLLOWERS;
 
 		return this;
 	},
@@ -444,8 +422,11 @@ var Cell = EventEmitter.extend({
 			EventEmitterProto.off.call(this);
 		}
 
-		if (!this._slaves.length && !this._events.has('change') && !this._events.has('error') && this._hasFollowers) {
-			this._hasFollowers = false;
+		if (
+			!this._slaves.length && !this._events.has('change') && !this._events.has('error') &&
+				(this._state & STATE_HAS_FOLLOWERS)
+		) {
+			this._state ^= STATE_HAS_FOLLOWERS;
 
 			this._deactivate();
 
@@ -538,7 +519,7 @@ var Cell = EventEmitter.extend({
 		this._activate();
 
 		this._slaves.push(slave);
-		this._hasFollowers = true;
+		this._state |= STATE_HAS_FOLLOWERS;
 	},
 	/**
 	 * @typesign (slave: cellx.Cell);
@@ -547,7 +528,7 @@ var Cell = EventEmitter.extend({
 		this._slaves.splice(this._slaves.indexOf(slave), 1);
 
 		if (!this._slaves.length && !this._events.has('change') && !this._events.has('error')) {
-			this._hasFollowers = false;
+			this._state ^= STATE_HAS_FOLLOWERS;
 
 			this._deactivate();
 
@@ -561,7 +542,7 @@ var Cell = EventEmitter.extend({
 	 * @typesign ();
 	 */
 	_activate: function _activate() {
-		if (!this._pull || this._active || this._masters === null) {
+		if (!this._pull || (this._state & STATE_ACTIVE) || this._masters === null) {
 			return;
 		}
 
@@ -570,7 +551,7 @@ var Cell = EventEmitter.extend({
 		if (this._version < releaseVersion) {
 			var value = this._tryPull();
 
-			if (masters || this._masters || !this._inited) {
+			if (masters || this._masters || !(this._state & STATE_INITED)) {
 				if (value === error) {
 					this._fail(error.original, false);
 				} else {
@@ -588,14 +569,14 @@ var Cell = EventEmitter.extend({
 				masters[--i]._registerSlave(this);
 			} while (i);
 
-			this._active = true;
+			this._state |= STATE_ACTIVE;
 		}
 	},
 	/**
 	 * @typesign ();
 	 */
 	_deactivate: function _deactivate() {
-		if (!this._active) {
+		if (!(this._state & STATE_ACTIVE)) {
 			return;
 		}
 
@@ -610,7 +591,7 @@ var Cell = EventEmitter.extend({
 			this._levelInRelease = -1;
 		}
 
-		this._active = false;
+		this._state ^= STATE_ACTIVE;
 	},
 
 	/**
@@ -642,7 +623,7 @@ var Cell = EventEmitter.extend({
 			if (!transactionLevel && !config.asynchronous) {
 				release();
 			} else {
-				Cell._nextTick(release);
+				nextTick(release);
 			}
 		}
 	},
@@ -658,12 +639,12 @@ var Cell = EventEmitter.extend({
 			this._changeEvent = evt;
 
 			if (this._value === this._fixedValue) {
-				this._canCancelChange = false;
+				this._state ^= STATE_CAN_CANCEL_CHANGE;
 			}
 		} else {
 			evt.prev = null;
 			this._changeEvent = evt;
-			this._canCancelChange = false;
+			this._state ^= STATE_CAN_CANCEL_CHANGE;
 
 			this._addToRelease();
 		}
@@ -677,20 +658,20 @@ var Cell = EventEmitter.extend({
 			release();
 		}
 
-		if (this._pull && !this._active && this._version < releaseVersion && this._masters !== null) {
+		if (this._pull && !(this._state & STATE_ACTIVE) && this._version < releaseVersion && this._masters !== null) {
 			var oldMasters = this._masters;
 			var value = this._tryPull();
 			var masters = this._masters;
 
-			if (oldMasters || masters || !this._inited) {
-				if (masters && this._hasFollowers) {
+			if (oldMasters || masters || !(this._state & STATE_INITED)) {
+				if (masters && (this._state & STATE_HAS_FOLLOWERS)) {
 					var i = masters.length;
 
 					do {
 						masters[--i]._registerSlave(this);
 					} while (i);
 
-					this._active = true;
+					this._state |= STATE_ACTIVE;
 				}
 
 				if (value === error) {
@@ -734,7 +715,7 @@ var Cell = EventEmitter.extend({
 			release();
 		}
 
-		var hasFollowers = this._hasFollowers;
+		var hasFollowers = this._state & STATE_HAS_FOLLOWERS;
 
 		var oldMasters;
 		var oldLevel;
@@ -773,7 +754,11 @@ var Cell = EventEmitter.extend({
 				}
 			}
 
-			this._active = !!(masters && masters.length);
+			if (masters && masters.length) {
+				this._state |= STATE_ACTIVE;
+			} else {
+				this._state ^= STATE_ACTIVE;
+			}
 
 			if (currentlyRelease && this._level > oldLevel) {
 				this._addToRelease();
@@ -793,28 +778,26 @@ var Cell = EventEmitter.extend({
 	 * @typesign () -> *;
 	 */
 	_tryPull: function _tryPull() {
-		if (this._currentlyPulling) {
+		if (this._state & STATE_CURRENTLY_PULLING) {
 			throw new TypeError('Circular pulling detected');
 		}
 
 		var prevCell = currentCell;
 		currentCell = this;
 
-		this._currentlyPulling = true;
+		this._state |= STATE_CURRENTLY_PULLING;
 		this._masters = null;
 		this._level = 0;
 
 		try {
-			return this._pull.length ?
-				this._pull.call(this.owner, this.push, this.fail, this._value) :
-				this._pull.call(this.owner);
+			return this._pull.length ? this._pull.call(this.owner, this, this._value) : this._pull.call(this.owner);
 		} catch (err) {
 			error.original = err;
 			return error;
 		} finally {
 			currentCell = prevCell;
 			this._version = releaseVersion + currentlyRelease;
-			this._currentlyPulling = false;
+			this._state ^= STATE_CURRENTLY_PULLING;
 		}
 	},
 
@@ -822,19 +805,14 @@ var Cell = EventEmitter.extend({
 	 * @typesign (value) -> cellx.Cell;
 	 */
 	set: function set(value) {
-		var oldValue = this._value;
-
-		if (this._validate) {
-			this._validate(value, oldValue);
-		}
 		if (this._merge) {
-			value = this._merge(value, oldValue);
+			value = this._merge(value, this._value);
 		}
 
-		if (this._put.length >= 2) {
-			this._put.call(this.owner, value, this.push, this.fail, oldValue);
+		if (this._put.length >= 3) {
+			this._put.call(this.owner, this, value, this._value);
 		} else {
-			this._put.call(this.owner, value);
+			this._put.call(this.owner, this, value);
 		}
 
 		return this;
@@ -852,11 +830,11 @@ var Cell = EventEmitter.extend({
 	 * @typesign (value, external: boolean, pulling: boolean) -> boolean;
 	 */
 	_push: function _push(value, external, pulling) {
-		this._inited = true;
+		this._state |= STATE_INITED;
 
 		var oldValue = this._value;
 
-		if (external && currentlyRelease && this._hasFollowers) {
+		if (external && currentlyRelease && (this._state & STATE_HAS_FOLLOWERS)) {
 			if (is(value, oldValue)) {
 				this._setError(null);
 				return false;
@@ -890,9 +868,9 @@ var Cell = EventEmitter.extend({
 			value.on('change', this._onValueChange, this);
 		}
 
-		if (this._hasFollowers || transactionLevel) {
+		if ((this._state & STATE_HAS_FOLLOWERS) || transactionLevel) {
 			if (this._changeEvent) {
-				if (is(value, this._fixedValue) && this._canCancelChange) {
+				if (is(value, this._fixedValue) && (this._state & STATE_CAN_CANCEL_CHANGE)) {
 					this._levelInRelease = -1;
 					this._changeEvent = null;
 				} else {
@@ -912,7 +890,7 @@ var Cell = EventEmitter.extend({
 					value: value,
 					prev: null
 				};
-				this._canCancelChange = true;
+				this._state |= STATE_CAN_CANCEL_CHANGE;
 
 				this._addToRelease();
 			}
@@ -964,8 +942,6 @@ var Cell = EventEmitter.extend({
 		this._error = err;
 
 		if (err) {
-			this._errorIndex = ++errorIndexCounter;
-
 			this._handleErrorEvent({
 				type: 'error',
 				error: err
