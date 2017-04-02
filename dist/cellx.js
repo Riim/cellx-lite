@@ -1881,7 +1881,7 @@ function release() {
 }
 
 /**
- * @typesign (value);
+ * @typesign (cell: Cell, value);
  */
 function defaultPut(cell, value) {
 	cell.push(value);
@@ -2367,12 +2367,12 @@ var Cell = EventEmitter.extend({
 			this._changeEvent = evt;
 
 			if (this._value === this._fixedValue) {
-				this._state ^= STATE_CAN_CANCEL_CHANGE;
+				this._state &= ~STATE_CAN_CANCEL_CHANGE;
 			}
 		} else {
 			evt.prev = null;
 			this._changeEvent = evt;
-			this._state ^= STATE_CAN_CANCEL_CHANGE;
+			this._state &= ~STATE_CAN_CANCEL_CHANGE;
 
 			this._addToRelease();
 		}
@@ -2485,7 +2485,7 @@ var Cell = EventEmitter.extend({
 			if (masters && masters.length) {
 				this._state |= STATE_ACTIVE;
 			} else {
-				this._state ^= STATE_ACTIVE;
+				this._state &= ~STATE_ACTIVE;
 			}
 
 			if (currentlyRelease && this._level > oldLevel) {
