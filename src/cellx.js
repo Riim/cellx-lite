@@ -117,19 +117,19 @@ function define(obj, name, value) {
 
 cellx.define = define;
 
-cellx.JS = {
-	is: is,
-	Symbol: Symbol,
-	Map: Map
+cellx.JS = cellx.js = {
+	is,
+	Symbol,
+	Map
 };
 
-cellx.Utils = {
-	logError: logError,
-	nextUID: nextUID,
-	mixin: mixin,
-	createClass: createClass,
-	nextTick: nextTick,
-	noop: noop
+cellx.Utils = cellx.utils = {
+	logError,
+	nextUID,
+	mixin,
+	createClass,
+	nextTick,
+	noop
 };
 
 cellx.cellx = cellx;
