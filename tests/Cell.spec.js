@@ -693,7 +693,7 @@ describe('Cell', () => {
 	});
 
 	it('должна поддерживать перебор for-of-ом', () => {
-		let list = new cellx.Cell(cellx.list([1, 2, 3]));
+		let list = new cellx.Cell(new cellx.ObservableList([1, 2, 3]));
 		let result = [];
 
 		for (let value of list) {

@@ -1000,7 +1000,7 @@ ObservableMap.prototype[Symbol$1.iterator] = ObservableMap.prototype.entries;
 
 var push = Array.prototype.push;
 var splice = Array.prototype.splice;
-var map$1 = Array.prototype.map;
+var map = Array.prototype.map;
 
 /**
  * @typesign (a, b) -> -1 | 1 | 0;
@@ -1809,7 +1809,6 @@ function release() {
 			cell.pull();
 
 			level = cell._level;
-			changeEvent = cell._changeEvent;
 
 			if (level > releasePlanIndex) {
 				if (!queue.length) {
@@ -1818,6 +1817,8 @@ function release() {
 
 				continue;
 			}
+
+			changeEvent = cell._changeEvent;
 		}
 
 		cell._levelInRelease = -1;
@@ -2747,7 +2748,7 @@ Cell.prototype[Symbol$1.iterator] = function () {
 function logError() {
 	var console = global$1.console;
 
-	(console && console.error || noop).call(console || global$1, map$1.call(arguments, (function (arg) {
+	(console && console.error || noop).call(console || global$1, map.call(arguments, (function (arg) {
 		return arg === Object(arg) && arg.stack || arg;
 	})).join(' '));
 }
@@ -2766,38 +2767,6 @@ cellx.autorun = Cell.autorun;
 cellx.transact = cellx.transaction = Cell.transaction;
 cellx.KEY_UID = UID;
 cellx.KEY_CELLS = CELLS;
-
-/**
- * @typesign (
- *     entries?: Object | Array<{ 0, 1 }> | cellx.ObservableMap,
- *     opts?: { adoptsValueChanges?: boolean }
- * ) -> cellx.ObservableMap;
- *
- * @typesign (
- *     entries?: Object | Array<{ 0, 1 }> | cellx.ObservableMap,
- *     adoptsValueChanges?: boolean
- * ) -> cellx.ObservableMap;
- */
-function map(entries, opts) {
-	return new ObservableMap(entries, opts);
-}
-
-cellx.map = map;
-
-/**
- * @typesign (items?: Array | cellx.ObservableList, opts?: {
- *     adoptsValueChanges?: boolean,
- *     comparator?: (a, b) -> int,
- *     sorted?: boolean
- * }) -> cellx.ObservableList;
- *
- * @typesign (items?: Array | cellx.ObservableList, adoptsValueChanges?: boolean) -> cellx.ObservableList;
- */
-function list(items, opts) {
-	return new ObservableList(items, opts);
-}
-
-cellx.list = list;
 
 /**
  * @typesign (obj: cellx.EventEmitter, name: string, value) -> cellx.EventEmitter;
