@@ -11,7 +11,6 @@ import Symbol from './JS/Symbol';
 import logError from './Utils/logError';
 import nextUID from './Utils/nextUID';
 import mixin from './Utils/mixin';
-import createClass from './Utils/createClass';
 import nextTick from './Utils/nextTick';
 import noop from './Utils/noop';
 
@@ -85,17 +84,16 @@ function define(obj, name, value) {
 
 cellx.define = define;
 
-cellx.JS = cellx.js = {
+cellx.JS = {
 	is,
 	Symbol,
 	Map
 };
 
-cellx.Utils = cellx.utils = {
+cellx.Utils = {
 	logError,
 	nextUID,
 	mixin,
-	createClass,
 	nextTick,
 	noop
 };
