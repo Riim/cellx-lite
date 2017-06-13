@@ -69,8 +69,8 @@ declare namespace Cellx {
 		size: number;
 		adoptsValueChanges: boolean;
 
-		constructor(entries?: ObservableMapEntries<K, V>, opts?: IObservableMapOptions);
-		constructor(entries?: ObservableMapEntries<K, V>, adoptsValueChanges?: boolean);
+		constructor(entries?: ObservableMapEntries<K, V> | null, opts?: IObservableMapOptions);
+		constructor(entries?: ObservableMapEntries<K, V> | null, adoptsValueChanges?: boolean);
 
 		has(key: K): boolean;
 		contains(value: V): boolean;
@@ -101,8 +101,8 @@ declare namespace Cellx {
 		comparator: IComparator<T>;
 		sorted: boolean;
 
-		constructor(items?: ObservableListItems<T>, opts?: IObservableListOptions<T>);
-		constructor(items?: ObservableListItems<T>, adoptsValueChanges?: boolean);
+		constructor(items?: ObservableListItems<T> | null, opts?: IObservableListOptions<T>);
+		constructor(items?: ObservableListItems<T> | null, adoptsValueChanges?: boolean);
 
 		contains(value: T): boolean;
 		indexOf(value: T, fromIndex?: number): number;
