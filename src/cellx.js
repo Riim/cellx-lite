@@ -33,20 +33,20 @@ cellx.KEY_CELLS = KEY_CELLS;
  * @typesign (obj: cellx.EventEmitter, name: string, value) -> cellx.EventEmitter;
  */
 function defineObservableProperty(obj, name, value) {
-	var privateName = '_' + name;
+	var cellName = name + 'Cell';
 
-	obj[privateName] = value instanceof Cell ? value : new Cell(value, { owner: obj });
+	obj[cellName] = value instanceof Cell ? value : new Cell(value, { owner: obj });
 
 	Object.defineProperty(obj, name, {
 		configurable: true,
 		enumerable: true,
 
 		get: function() {
-			return this[privateName].get();
+			return this[cellName].get();
 		},
 
 		set: function(value) {
-			this[privateName].set(value);
+			this[cellName].set(value);
 		}
 	});
 
