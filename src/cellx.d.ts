@@ -16,8 +16,8 @@ declare namespace Cellx {
 		[key: string]: any;
 	}
 
-	interface IEvent {
-		target: EventEmitter;
+	interface IEvent<T extends EventEmitter = EventEmitter> {
+		target: T;
 		type: string;
 		bubbles?: boolean;
 		isPropagationStopped?: boolean;
