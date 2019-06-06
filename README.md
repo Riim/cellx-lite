@@ -16,30 +16,15 @@ Ultra-fast implementation of reactivity for javascript.
 
 ## Installation
 
-You can currently install the package as a npm package or bower component.
-
-### NPM
-
 The following command installs cellx as a npm package:
 ```
 npm install cellx --save
 ```
 
-### Bower
-
-The following command installs cellx as a bower component that can be used in the browser:
-```
-bower install cellx --save
-```
-
-## Browser support
-
-cellx supports IE9 and above and all modern browsers.
-
 ## Example
 
 ```js
-var user = {
+let user = {
     firstName: cellx('Matroskin'),
     lastName: cellx('Cat'),
 
@@ -49,7 +34,7 @@ var user = {
 };
 
 user.fullName('subscribe', function() {
-    console.log('fullName: ' + user.fullName());
+    console.log('fullName: ' + this.fullName());
 });
 
 console.log(user.fullName());
@@ -60,7 +45,7 @@ user.lastName('Dog');
 // => 'fullName: Sharik Dog'
 ```
 
-Despite the fact that the two dependencies of the cell `fullName` has been changed, event handler worked only once.  
+Despite the fact that the two dependencies of the cell `fullName` has been changed, event handler worked only once.
 Important feature of cellx is that it tries to get rid of unnecessary calls
 of the event handlers as well as of unnecessary calls of the dependent cells calculation formulas.
 In combination with some special optimizations, this leads to an ideal speed of calculation of
@@ -88,7 +73,7 @@ Test results (in milliseconds) for different number of layers (for Google Chrome
 | [MobX](https://mobxjs.github.io/mobx/)                  |     <~1 |                               <~1 |                                 <~1 |       2 |       3 |      40 | RangeError: Maximum call stack size exceeded | RangeError: Maximum call stack size exceeded |
 | [Matreshka.js](https://matreshka.io/)                   |      11 |                              1150 |                              143000 | >300000 | >300000 | >300000 |                                      >300000 |                                      >300000 |
 
-Test sources can be found in the folder [perf](https://github.com/Riim/cellx/tree/master/perf).  
+Test sources can be found in the folder [perf](https://github.com/Riim/cellx/tree/master/perf).
 Density of connections in real applications is usually lower than in the present test, that is,
 if a certain delay in the test is visible in 100 calculated cells (25 layers), in a real application,
 this delay will either be visible in the greater number of cells, or cells formulas will include
@@ -99,8 +84,8 @@ some complex calculations (e.g., computation of one array from other).
 Cells can be stored in the variables:
 
 ```js
-var num = cellx(1);
-var plusOne = cellx(function() { return num() + 1; });
+let num = cellx(1);
+let plusOne = cellx(() => num() + 1);
 
 console.log(plusOne());
 // => 2
@@ -114,7 +99,7 @@ function User(name) {
     this.nameInitial = cellx(function() { return this.name().charAt(0).toUpperCase(); });
 }
 
-var user = new User('Matroskin');
+let user = new User('Matroskin');
 
 console.log(user.nameInitial());
 // => 'M'
@@ -127,10 +112,10 @@ function User(name) {
     this.name(name);
 }
 User.prototype.name = cellx();
-User.prototype.friends = cellx(function() { return []; }); // each instance of the user will get its own instance of the array
+User.prototype.friends = cellx(() => []); // each instance of the user will get its own instance of the array
 
-var user1 = new User('Matroskin');
-var user2 = new User('Sharik');
+let user1 = new User('Matroskin');
+let user2 = new User('Sharik');
 
 console.log(user1.friends() == user2.friends());
 // => false
@@ -146,7 +131,7 @@ function User(name) {
     });
 }
 
-var user = new User('Matroskin');
+let user = new User('Matroskin');
 
 console.log(user.nameInitial);
 // => 'M'
@@ -175,8 +160,8 @@ Additional processing of value during reading:
 
 ```js
 // array that you can't mess up accidentally, the messed up thing will be a copy
-var arr = cellx([1, 2, 3], {
-    get: function(arr) { return arr.slice(); }
+let arr = cellx([1, 2, 3], {
+    get: arr => arr.slice()
 });
 
 console.log(arr()[0]);
@@ -209,7 +194,7 @@ function User() {
     });
 }
 
-var user = new User();
+let user = new User();
 
 user.fullName('Matroskin Cat');
 
@@ -226,8 +211,8 @@ Validates the value during recording and calculating.
 Validation during recording into the cell:
 
 ```js
-var num = cellx(5, {
-    validate: function(value) {
+let num = cellx(5, {
+    validate: value => {
         if (typeof value != 'number') {
             throw new TypeError('Oops!');
         }
@@ -248,19 +233,17 @@ console.log(num());
 Validation during the calculation of the cell:
 
 ```js
-var value = cellx(5);
+let value = cellx(5);
 
-var num = cellx(function() {
-    return value();
-}, {
-    validate: function(value) {
+let num = cellx(() => value(), {
+    validate: value => {
         if (typeof value != 'number') {
             throw new TypeError('Oops!');
         }
     }
 });
 
-num('subscribe', function(err) {
+num('subscribe', err => {
     console.log(err.message);
 });
 
@@ -286,14 +269,14 @@ just `0` (see `dispose`).
 Adds a change listener:
 
 ```js
-var num = cellx(5);
+let num = cellx(5);
 
-num('addChangeListener', function(evt) {
+num('addChangeListener', evt => {
     console.log(evt);
 });
 
 num(10);
-// => { oldValue: 5, value: 10 }
+// => { prevValue: 5, value: 10 }
 ```
 
 #### removeChangeListener
@@ -305,17 +288,17 @@ Removes previously added change listener.
 Adds a error listener:
 
 ```js
-var value = cellx(1);
+let value = cellx(1);
 
-var num = cellx(function() { return value(); }, {
-    validate: function(v) {
+let num = cellx(() => value(), {
+    validate: v => {
         if (v > 1) {
             throw new TypeError('Oops!');
         }
     }
 });
 
-num('addErrorListener', function(evt) {
+num('addErrorListener', evt => {
     console.log(evt.error.message);
 });
 
@@ -332,7 +315,7 @@ Removes previously added error listener.
 Subscribes to the events `change` and `error`. First argument comes into handler is an error object, second — an event.
 
 ```js
-user.fullName('subscribe', function(err, evt) {
+user.fullName('subscribe', (err, evt) => {
     if (err) {
         //
     } else {
@@ -361,7 +344,7 @@ class User extends cellx.EventEmitter {
 
 let user = new User('Matroskin');
 
-user.on('change:nameInitial', function(evt) {
+user.on('change:nameInitial', evt => {
     console.log('nameInitial: ' + evt.value);
 });
 
@@ -395,12 +378,12 @@ and in the absence of links all branch of dependencies will "die".
 ## Collapse and discarding of events
 
 To minimize redraw of UI cellx may "collapse" several events into one. Link to the previous event is stored in
-`evt.prev`:
+`evt.prevEvent`:
 
 ```js
-var num = cellx(5);
+let num = cellx(5);
 
-num('addChangeListener', function(evt) {
+num('addChangeListener', evt => {
     console.log(evt);
 });
 
@@ -408,26 +391,26 @@ num(10);
 num(15);
 num(20);
 // => {
-//     oldValue: 15,
-//     value: 20,
-//     prev: {
-//         oldValue: 10,
-//         value: 15,
-//         prev: {
-//             oldValue: 5,
-//             value: 10,
-//             prev: null
+//     prevEvent: {
+//         prevEvent: {
+//             prevEvent: null
+//             prevValue: 5,
+//             value: 10
 //         }
+//         prevValue: 10,
+//         value: 15
 //     }
+//     prevValue: 15,
+//     value: 20
 // }
 ```
 
 In cases when the cell comes to the initial value before generation of event, it does not generate it at all:
 
 ```js
-var num = cellx(5);
+let num = cellx(5);
 
-num('addChangeListener', function(evt) {
+num('addChangeListener', evt => {
     console.log(evt);
 });
 
@@ -440,17 +423,18 @@ num(5); // return the original value
 Upon changing the number of the calculated cell dependencies, it is evaluated only once and creates only one event:
 
 ```js
-var inited = false;
-var num1 = cellx(5);
-var num2 = cellx(10);
-var sum = cellx(function() {
+let inited = false;
+let num1 = cellx(5);
+let num2 = cellx(10);
+let sum = cellx(() => {
     if (inited) {
         console.log('sum.formula');
     }
+
     return num1() + num2();
 });
 
-sum('addChangeListener', function(evt) {
+sum('addChangeListener', evt => {
     console.log(evt);
 });
 
@@ -460,9 +444,9 @@ num1(10);
 num2(15);
 // => 'sum.formula'
 // => {
-//     oldValue: 15,
-//     value: 25,
-//     prev: null
+//     prevEvent: null
+//     prevValue: 15,
+//     value: 25
 // }
 ```
 
@@ -471,7 +455,7 @@ num2(15);
 Calculated cell formula can be written so that a set of dependencies may change over time. For example:
 
 ```js
-var user = {
+let user = {
     firstName: cellx(''),
     lastName: cellx(''),
 
@@ -492,18 +476,14 @@ to the `lastName`.
 ## Synchronization of value with synchronous storage
 
 ```js
-var foo = cellx(function() {
-	return localStorage.foo || 'foo';
-}, {
+let foo = cellx(() => localStorage.foo || 'foo', {
 	put: function(value) {
 		localStorage.foo = value;
 		this.push(value);
 	}
 });
 
-var foobar = cellx(function() {
-	return foo() + 'bar';
-});
+let foobar = cellx(() => foo() + 'bar');
 
 console.log(foobar()); // => 'foobar'
 console.log(localStorage.foo); // => undefined
@@ -515,58 +495,54 @@ console.log(localStorage.foo); // => 'FOO'
 ## Synchronization of value with asynchronous storage
 
 ```js
-var request = (function() {
-	var value = 1;
+let request = (() => {
+	let value = 1;
 
 	return {
-		get: function(url) {
-			return new Promise(function(resolve, reject) {
-				setTimeout(function() {
-					resolve({
-						ok: true,
-						value: value
-					});
-				}, 1000);
-			});
-		},
+		get: url => new Promise((resolve, reject) => {
+            setTimeout(() => {
+                resolve({
+                    ok: true,
+                    value
+                });
+            }, 1000);
+        }),
 
-		put: function(url, params) {
-			return new Promise(function(resolve, reject) {
-				setTimeout(function() {
-					value = params.value;
+		put: (url, params) => new Promise((resolve, reject) => {
+            setTimeout(() => {
+                value = params.value;
 
-					resolve({
-						ok: true
-					});
-				}, 1000);
-			});
-		}
+                resolve({
+                    ok: true
+                });
+            }, 1000);
+        })
 	};
 })();
 
-var foo = cellx(function(push, fail, oldValue) {
-	request.get('http://...').then(function(res) {
+let foo = cellx(function(cell, next = 0) {
+	request.get('http://...').then((res) => {
 		if (res.ok) {
-			push(res.value);
+			cell.push(res.value);
 		} else {
-			fail(res.error);
+			cell.fail(res.error);
 		}
 	});
 
-	return oldValue || 0;
+	return next;
 }, {
-	put: function(value, push, fail, oldValue) {
-		request.put('http://...', { value: value }).then(function(res) {
+	put: (value, cell, next) => {
+		request.put('http://...', { value: value }).then(res => {
 			if (res.ok) {
-				push(value);
+				cell.push(value);
 			} else {
-				fail(res.error);
+				cell.fail(res.error);
 			}
 		});
 	}
 });
 
-foo('subscribe', function() {
+foo('subscribe', () => {
 	console.log('New foo value: ' + foo());
 	foo(5);
 });
@@ -574,7 +550,7 @@ foo('subscribe', function() {
 console.log(foo());
 // => 0
 
-foo('then', function() {
+foo('then', () => {
     console.log(foo());
 });
 // => 'New foo value: 1'
@@ -588,13 +564,13 @@ If you record to the cell an instance of class which inherits of `cellx.EventEmi
 then the cell will subscribe to its `change` event and will claim it as own:
 
 ```js
-var value = cellx(new cellx.EventEmitter());
+let value = cellx(new cellx.EventEmitter());
 
-value('subscribe', function(err, evt) {
-    console.log(evt.ok);
+value('subscribe', (err, evt) => {
+    console.log(evt.target instanceof cellx.EventEmitter);
 });
 
-value().emit({ type: 'change', ok: true });
+value().emit('change');
 // => true
 ```
 
@@ -606,7 +582,7 @@ and dependent cells will be recalculated. Two such collections already is added 
 The short syntax to create:
 
 ```js
-var map = cellx.map({
+let map = cellx.map({
     key1: 1,
     key2: 2,
     key3: 3
@@ -629,7 +605,7 @@ the fact that the keys in the Map can be of any type) or another map.
 Short creation syntax:
 
 ```js
-var list = cellx.list([1, 2, 3]);
+let list = cellx.list([1, 2, 3]);
 ```
 
 Like `cellx.ObservableMap`, list generates an event `change` upon any change of its records.
@@ -637,12 +613,12 @@ Like `cellx.ObservableMap`, list generates an event `change` upon any change of 
 During initialization the list may take option `comparator`, which will implement the assortment of its values:
 
 ```js
-var list = cellx.list([
+let list = cellx.list([
     { x: 5 },
     { x: 1 },
     { x: 10 }
 ], {
-    comparator: function(a, b) {
+    comparator: (a, b) => {
         if (a.x < b.x) { return -1; }
         if (a.x > b.x) { return 1; }
         return 0;
@@ -661,7 +637,7 @@ console.log(list.toArray());
 If instead of `comparator` you pass the option `sorted` with the value `true`, it will use the standard `comparator`:
 
 ```js
-var list = cellx.list([5, 1, 10], { sorted: true });
+let list = cellx.list([5, 1, 10], { sorted: true });
 
 console.log(list.toArray());
 // => [1, 5, 10]
@@ -735,11 +711,11 @@ Type signature: `(index: int, values: Array) -> cellx.ObservableList;`.
 
 ##### add
 
-Type signature: `(value) -> cellx.ObservableList;`.
+Type signature: `(value, unique?: boolean) -> cellx.ObservableList;`.
 
 ##### addRange
 
-Type signature: `(values: Array) -> cellx.ObservableList;`.
+Type signature: `(values: Array, unique?: boolean) -> cellx.ObservableList;`.
 
 ##### insert
 
@@ -762,10 +738,6 @@ Type signature: `(value, fromIndex?: int) -> boolean;`.
 It removes all occurrences of `value` list.
 
 ##### removeEach
-
-Type signature: `(values: Array, fromIndex?: int) -> boolean;`.
-
-##### removeAllEach
 
 Type signature: `(values: Array, fromIndex?: int) -> boolean;`.
 
@@ -834,13 +806,6 @@ Type signature: `() -> Array;`.
 ##### toString
 
 Type signature: `() -> string;`.
-
-## Size
-
-| File         | Original |  Gzipped |
-|--------------|----------|----------|
-| cellx.js     | 65.39 kB | 12.81 kB |
-| cellx.min.js |  27.8 kB |  7.91 kB |
 
 ## List of references
 
