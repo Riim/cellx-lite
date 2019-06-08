@@ -27,6 +27,7 @@ export interface ICellErrorEvent<T extends EventEmitter = EventEmitter> extends 
 }
 export declare type TCellEvent<T extends EventEmitter = EventEmitter> = ICellChangeEvent<T> | ICellErrorEvent<T>;
 export declare class Cell<T = any, M = any> extends EventEmitter {
+    static readonly currentlyPulling: boolean;
     static release(): void;
     static afterRelease(cb: Function): void;
     debugKey: string | undefined;

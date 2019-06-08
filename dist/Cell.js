@@ -78,6 +78,9 @@ class Cell extends EventEmitter_1.EventEmitter {
             }
         }
     }
+    static get currentlyPulling() {
+        return !!currentCell;
+    }
     static release() {
         release();
     }

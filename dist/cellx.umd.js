@@ -305,6 +305,9 @@ class Cell extends EventEmitter_1.EventEmitter {
             }
         }
     }
+    static get currentlyPulling() {
+        return !!currentCell;
+    }
     static release() {
         release();
     }
@@ -760,10 +763,10 @@ class EventEmitter {
     static set currentlySubscribing(value) {
         currentlySubscribing = value;
     }
-    static transact(callback) {
+    static transact(cb) {
         transactionLevel++;
         try {
-            callback();
+            cb();
         }
         catch (err) {
             logger_1.error(err);
@@ -1252,20 +1255,20 @@ class ObservableList extends EventEmitter_1.EventEmitter {
     join(separator) {
         return this._items.join(separator);
     }
-    find(callback, context) {
+    find(cb, context) {
         let items = this._items;
         for (let i = 0, l = items.length; i < l; i++) {
             let item = items[i];
-            if (callback.call(context, item, i, this)) {
+            if (cb.call(context, item, i, this)) {
                 return item;
             }
         }
         return;
     }
-    findIndex(callback, context) {
+    findIndex(cb, context) {
         let items = this._items;
         for (let i = 0, l = items.length; i < l; i++) {
-            if (callback.call(context, items[i], i, this)) {
+            if (cb.call(context, items[i], i, this)) {
                 return i;
             }
         }
@@ -1304,17 +1307,17 @@ class ObservableList extends EventEmitter_1.EventEmitter {
 }
 exports.ObservableList = ObservableList;
 ['forEach', 'map', 'filter', 'every', 'some'].forEach(name => {
-    ObservableList.prototype[name] = function (callback, context) {
+    ObservableList.prototype[name] = function (cb, context) {
         return this._items[name](function (item, index) {
-            return callback.call(context, item, index, this);
+            return cb.call(context, item, index, this);
         }, this);
     };
 });
 ['reduce', 'reduceRight'].forEach(name => {
-    ObservableList.prototype[name] = function (callback, initialValue) {
+    ObservableList.prototype[name] = function (cb, initialValue) {
         let list = this;
         function wrapper(accumulator, item, index) {
-            return callback(accumulator, item, index, list);
+            return cb(accumulator, item, index, list);
         }
         return arguments.length >= 2
             ? this._items[name](wrapper, initialValue)
@@ -1436,9 +1439,9 @@ class ObservableMap extends EventEmitter_1.EventEmitter {
         }
         return this;
     }
-    forEach(callback, context) {
+    forEach(cb, context) {
         this._entries.forEach(function (value, key) {
-            callback.call(context, value, key, this);
+            cb.call(context, value, key, this);
         }, this);
     }
     keys() {

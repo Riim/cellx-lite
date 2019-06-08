@@ -73,6 +73,10 @@ function release() {
 }
 
 export class Cell<T = any, M = any> extends EventEmitter {
+	static get currentlyPulling(): boolean {
+		return !!currentCell;
+	}
+
 	static release() {
 		release();
 	}
